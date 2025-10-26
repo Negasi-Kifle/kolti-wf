@@ -4,10 +4,14 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default async function LandingPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (error) {
+    console.warn("[v0] Error checking user authentication:", error)
+  }
 
   if (user) {
     redirect("/home")
