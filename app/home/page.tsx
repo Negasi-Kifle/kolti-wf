@@ -10,52 +10,39 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default async function HomePage() {
-  let user = null
-  let profile = null
-  let accounts: any[] = []
-  let transactions: any[] = []
+  const supabase = await createClient()
 
-  try {
-    const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    const { data: userData } = await supabase.auth.getUser()
-    user = userData.user
-
-    if (!user) {
-      redirect("/auth/login")
-    }
-
-    // Fetch user profile
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-    profile = profileData
-
-    // Fetch linked accounts
-    const { data: accountsData } = await supabase
-      .from("linked_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("is_primary", { ascending: false })
-    accounts = accountsData || []
-
-    // Fetch recent transactions
-    const { data: transactionsData } = await supabase
-      .from("transactions")
-      .select("*, linked_accounts(account_name, provider_name)")
-      .eq("user_id", user.id)
-      .order("transaction_date", { ascending: false })
-      .limit(5)
-    transactions = transactionsData || []
-  } catch (error) {
-    console.error("[v0] Error loading home page data:", error)
-    // If Supabase is not configured, redirect to landing page
-    redirect("/")
+  if (!user) {
+    redirect("/auth/login")
   }
 
+  // Fetch user profile
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+
+  // Fetch linked accounts
+  const { data: accounts } = await supabase
+    .from("linked_accounts")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("is_primary", { ascending: false })
+
   // Calculate total balance
-  const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0)
+  const totalBalance = accounts?.reduce((sum, account) => sum + Number(account.balance), 0) || 0
+
+  // Fetch recent transactions
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("*, linked_accounts(account_name, provider_name)")
+    .eq("user_id", user.id)
+    .order("transaction_date", { ascending: false })
+    .limit(5)
 
   // Check if user has no data (new user)
-  const hasNoData = accounts.length === 0
+  const hasNoData = !accounts || accounts.length === 0
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -85,7 +72,7 @@ export default async function HomePage() {
               + Add Account
             </Link>
           </div>
-          <LinkedAccountsList accounts={accounts} />
+          <LinkedAccountsList accounts={accounts || []} />
         </div>
 
         <div className="space-y-4">
@@ -95,7 +82,7 @@ export default async function HomePage() {
               View All
             </a>
           </div>
-          <RecentTransactionsList transactions={transactions} />
+          <RecentTransactionsList transactions={transactions || []} />
         </div>
       </div>
 

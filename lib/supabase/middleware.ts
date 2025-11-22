@@ -9,9 +9,8 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If Supabase is not configured, just pass through the request
+  // If Supabase is not configured, just pass through without authentication
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("[v0] Supabase environment variables not configured. Skipping authentication middleware.")
     return supabaseResponse
   }
 
